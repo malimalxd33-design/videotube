@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VideoTube - Web Platformu</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; margin: 0; background-color: #f9f9f9; color: #111; transition: background 0.3s, color 0.3s; }
+        
+        header { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 10px 20px; border-bottom: 1px solid #ddd; position: sticky; top: 0; z-index: 100; }
+        .logo { font-size: 20px; font-weight: bold; color: #ff0000; cursor: pointer; }
+        .search-bar { display: flex; width: 40%; }
+        .search-bar input { padding: 8px; border: 1px solid #ccc; border-radius: 4px 0 0 4px; width: 100%; }
+        .search-bar button { padding: 8px 15px; border: 1px solid #ccc; background: #eee; border-left: none; border-radius: 0 4px 4px 0; cursor: pointer; color: #333; }
+        
+        .header-right { display: flex; align-items: center; gap: 10px; }
+        .btn-theme { background: transparent; border: 1px solid #ccc; padding: 6px 10px; border-radius: 20px; cursor: pointer; font-size: 14px; }
+        .user-panel { font-size: 13px; background: #ff0000; color: white; padding: 6px 12px; border-radius: 20px; font-weight: bold; cursor: pointer; border: none; }
+        .user-panel-outline { font-size: 13px; background: transparent; color: #ff0000; border: 1px solid #ff0000; padding: 6px 12px; border-radius: 20px; font-weight: bold; cursor: pointer; }
+        
+        .container { display: flex; min-height: calc(100vh - 57px); }
+        aside { width: 220px; background: #fff; padding: 15px; border-right: 1px solid #ddd; }
+        aside ul { list-style: none; padding: 0; margin: 0; }
+        aside li { padding: 12px 10px; cursor: pointer; border-radius: 8px; font-weight: 500; margin-bottom: 4px; }
+        aside li:hover, aside li.active { background: #f2f2f2; color: #ff0000; }
+        
+        main { flex: 1; padding: 20px; }
+        
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 200; }
+        .box { background: #fff; padding: 20px; border-radius: 8px; width: 400px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        input, select, textarea, button { padding: 10px; margin: 6px 0; width: 100%; border: 1px solid #ccc; border-radius: 4px; }
+        .btn-red { background: #ff0000; color: #fff; border: none; font-weight: bold; cursor: pointer; }
+        .btn-red:hover { background: #cc0000; }
+        .btn-gray { background: #666; color: #fff; border: none; cursor: pointer; }
+
+        .action-group { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .btn-action { background: #f1f1f1; color: #333; border: none; font-size: 12px; font-weight: bold; cursor: pointer; border-radius: 16px; padding: 6px 12px; display: inline-flex; align-items: center; gap: 4px; width: auto; margin: 0; }
+        .btn-action:hover { background: #e2e2e2; }
+        
+        .btn-sub { background: #ff0000; color: #fff; border: none; font-size: 13px; font-weight: bold; cursor: pointer; border-radius: 18px; padding: 6px 14px; width: auto; margin: 0; }
+        .btn-sub.subscribed { background: #666; }
+
+        #playerArea { display: none; background: #fff; padding: 15px; border: 1px solid #ddd; border-radius: 8px; margin-bottom: 20px; }
+        video { width: 100%; max-height: 480px; background: #000; border-radius: 6px; }
+
+        .comments-section { margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px; }
+        .comment-item { background: #f8f8f8; padding: 10px; border-radius: 6px; margin-bottom: 8px; font-size: 13px; }
+        .comment-item strong { color: #333; }
+        .comment-item span { font-size: 11px; color: #777; float: right; }
+
+        .section-title { margin-top: 25px; margin-bottom: 10px; font-size: 18px; border-bottom: 2px solid #ddd; padding-bottom: 5px; }
+        .video-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; margin-top: 10px; }
+        .video-card { background: #fff; border: 1px solid #e5e5e5; border-radius: 8px; padding: 10px; cursor: pointer; transition: 0.2s; }
+        .video-card:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
+        .thumbnail { width: 100%; height: 135px; background: #222; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; border-radius: 6px; margin-bottom: 8px; }
+
+        /* Sesler / MP3 Listesi Stilleri */
+        .audio-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-top: 10px; }
+        .audio-card { background: #fff; border: 1px solid #e5e5e5; border-radius: 8px; padding: 15px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .audio-card audio { width: 100%; height: 35px; margin-top: 5px; }
+
+        .shorts-container { display: flex; flex-direction: column; align-items: center; gap: 20px; height: calc(100vh - 120px); overflow-y: scroll; scroll-snap-type: y mandatory; padding: 10px; }
+        .short-card-full { scroll-snap-align: start; min-height: 75vh; width: 320px; background: #000; border-radius: 16px; position: relative; display: flex; justify-content: center; align-items: center; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.3); flex-shrink: 0; }
+        .short-card-full video { height: 100%; width: 100%; object-fit: cover; }
+        .short-info { position: absolute; bottom: 15px; left: 15px; color: white; text-shadow: 1px 1px 4px rgba(0,0,0,0.8); z-index: 10; }
+
+        .empty-state { text-align: center; padding: 40px 20px; background: #fff; border-radius: 8px; border: 1px dashed #ccc; }
+
+        #loadingOverlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); justify-content: center; align-items: center; z-index: 999; color: white; flex-direction: column; font-size: 18px; font-weight: bold; }
+        .spinner { border: 5px solid #f3f3f3; border-top: 5px solid #ff0000; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin-bottom: 15px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* SİYAH / GECE MODU STİLLERİ */
+        body.dark-mode { background-color: #121212; color: #e0e0e0; }
+        body.dark-mode header { background-color: #1e1e1e; border-color: #333; color: #fff; }
+        body.dark-mode aside { background-color: #1e1e1e; border-color: #333; color: #fff; }
+        body.dark-mode aside li:hover, body.dark-mode aside li.active { background: #2c2c2c; color: #ff4444; }
+        body.dark-mode .video-card, body.dark-mode .audio-card, body.dark-mode .box, body.dark-mode #playerArea { background-color: #1e1e1e; border-color: #333; color: #e0e0e0; }
+        body.dark-mode input, body.dark-mode select, body.dark-mode textarea { background-color: #2c2c2c; color: #fff; border-color: #444; }
+        body.dark-mode .comment-item { background-color: #2c2c2c; color: #ddd; }
+        body.dark-mode .comment-item strong { color: #fff; }
+        body.dark-mode .comment-item span { color: #aaa; }
+        body.dark-mode .btn-theme { border-color: #555; color: #fff; }
+        body.dark-mode .btn-action { background: #2c2c2c; color: #e0e0e0; }
+        body.dark-mode .btn-action:hover { background: #3c3c3c; }
+        body.dark-mode .empty-state { background-color: #1e1e1e; border-color: #444; }
+
+        @media (max-width: 768px) {
+            header { padding: 8px 12px; flex-wrap: wrap; gap: 8px; }
+            .search-bar { width: 100%; order: 3; }
+            .logo { font-size: 18px; }
+            .container { flex-direction: column; }
+            aside { width: 100%; position: fixed; bottom: 0; left: 0; background: #fff; border-right: none; border-top: 1px solid #ddd; padding: 8px 0; z-index: 300; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); }
+            body.dark-mode aside { background: #1e1e1e; border-top: 1px solid #333; }
+            aside ul { display: flex; justify-content: space-around; align-items: center; }
+            aside li { padding: 6px 8px; font-size: 11px; text-align: center; margin-bottom: 0; border-radius: 4px; }
+            aside hr { display: none; }
+            main { padding: 10px; padding-bottom: 80px; }
+            .video-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+            .audio-grid { grid-template-columns: 1fr; }
+            .thumbnail { height: 105px; font-size: 12px; }
+            .box { width: 90%; padding: 15px; margin: 20px; }
+            .short-card-full { width: 100%; height: 80vh; border-radius: 12px; }
+            .shorts-container { height: calc(100vh - 110px); padding: 5px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="loadingOverlay">
+        <div class="spinner"></div>
+        <div id="loadingText">İçerik yükleniyor, lütfen bekleyin...</div>
+    </div>
+
+    <header>
+        <div class="logo" onclick="oynatıcıKapatt(); sayfaDegistir('anasayfa')">▶ VideoTube</div>
+        
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="Video, kanal veya ses ara...">
+            <button onclick="aramaYap()">Ara</button>
+        </div>
+
+        <div class="header-right">
+            <button class="btn-theme" onclick="temaDegistir()" id="themeBtn">🌙 Gece Modu</button>
+            <div id="userHeaderArea"></div>
+        </div>
+    </header>
+
+    <div class="container">
+        <aside>
+            <ul>
+                <li id="menu-anasayfa" class="active" onclick="sayfaDegistir('anasayfa')">🏠 Ana Sayfa</li>
+                <li id="menu-shorts" onclick="sayfaDegistir('shorts')">📱 Shorts</li>
+                <li id="menu-sesler" onclick="sayfaDegistir('sesler')">🎵 Sesler (MP3)</li>
+                <li id="menu-trendler" onclick="sayfaDegistir('trendler')">🔥 Trendler</li>
+                <hr style="border: 0; border-top: 1px solid #eee; margin: 10px 0;">
+                <li id="menu-yukle" onclick="secimModalAc()">📤 İçerik Yükle</li>
+                <li id="menu-denetim" onclick="sayfaDegistir('denetim')">⚙️ Moderatör Paneli</li>
+            </ul>
+        </aside>
+
+        <main>
+            <div id="playerArea">
+                <h3 id="playingTitle" style="margin-top:0;">Video Adı</h3>
+                <video id="mainPlayer" controls preload="metadata"></video>
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; flex-wrap: wrap; gap: 10px;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span id="playingUser" style="font-weight: bold; font-size: 15px;">Yükleyen</span>
+                        <button id="subBtn" class="btn-sub" onclick="aboneOlTikla()">Abone Ol (<span id="subCount">0</span>)</button>
+                    </div>
+
+                    <div class="action-group">
+                        <button class="btn-action" onclick="videoBegen()">👍 <span id="likeCount">0</span></button>
+                        <button class="btn-action" onclick="videoBegenmeme()">👎 <span id="dislikeCount">0</span></button>
+                    </div>
+                </div>
+
+                <div class="comments-section">
+                    <h4>Yorumlar (<span id="commentCount">0</span>)</h4>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="yorumInput" placeholder="Yorum ekle..." style="margin:0; flex:1;">
+                        <button class="btn-red" style="width: auto; margin:0; padding: 8px 16px;" onclick="yorumGonder()">Yorum Yap</button>
+                    </div>
+                    <div id="yorumlarListesi" style="margin-top: 15px;"></div>
+                </div>
+
+                <button onclick="oynatıcıKapatt()" class="btn-gray" style="width: auto; margin-top: 15px;">Oynatıcıyı Kapat</button>
+            </div>
+
+            <div id="page-anasayfa">
+                <div id="anaSayfaIcerik"></div>
+            </div>
+
+            <div id="page-shorts" style="display:none;">
+                <h3 style="text-align: center; margin-top:0;">📱 Shorts Akışı</h3>
+                <div class="shorts-container" id="shortsContainer"></div>
+            </div>
+
+            <div id="page-sesler" style="display:none;">
+                <h3>🎵 Sesler & Müzik Arşivi (MP3)</h3>
+                <p style="font-size:13px; color:#666;">Platforma yüklenen özgün sesleri ve müzikleri dinleyebilir, keşfedebilirsiniz.</p>
+                <div class="audio-grid" id="seslerGrid"></div>
+            </div>
+
+            <div id="page-trendler" style="display:none;">
+                <h3>🔥 Yükselen Trendler</h3>
+                <div class="video-grid" id="trendGrid"></div>
+            </div>
+
+            <div id="page-denetim" style="display:none;">
+                <h3>⚙️ Moderatör & Kanal Denetimi</h3>
+                <div id="denetimListesi"></div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Giriş Yap Modal -->
+    <div class="modal" id="loginModal">
+        <div class="box">
+            <h3>Kullanıcı Girişi</h3>
+            <input type="text" id="loginNick" placeholder="Kullanıcı Adı">
+            <input type="password" id="loginPass" placeholder="Şifre">
+            <button class="btn-red" onclick="girisYapIslem()">Giriş Yap</button>
+            <button class="btn-gray" onclick="modalKapat('loginModal')">İptal</button>
+        </div>
+    </div>
+
+    <!-- Kayıt Ol Modal -->
+    <div class="modal" id="registerModal">
+        <div class="box">
+            <h3>Yeni Hesap Oluştur</h3>
+            <input type="text" id="regNick" placeholder="Kullanıcı Adı">
+            <input type="password" id="regPass" placeholder="Şifre">
+            <button class="btn-red" onclick="kayitOlIslem()">Kayıt Ol</button>
+            <button class="btn-gray" onclick="modalKapat('registerModal')">İptal</button>
+        </div>
+    </div>
+
+    <!-- Ne Yüklemek İstiyorsun Seçim Modalı -->
+    <div class="modal" id="secimModal">
+        <div class="box" style="text-align: center;">
+            <h3>Ne Yüklemek İstiyorsun?</h3>
+            <button class="btn-red" onclick="modalKapat('secimModal'); modalAc('uploadModal')">📺 Video / Shorts Yükle</button>
+            <button class="btn-red" style="background:#007bff;" onclick="modalKapat('secimModal'); modalAc('audioUploadModal')">🎵 MP3 / Ses Dosyası Yükle</button>
+            <button class="btn-gray" onclick="modalKapat('secimModal')">İptal</button>
+        </div>
+    </div>
+
+    <!-- Video Yükle Modal -->
+    <div class="modal" id="uploadModal">
+        <div class="box">
+            <h3>Video Yükle</h3>
+            <input type="text" id="videoBaslik" placeholder="Video Başlığı">
+            
+            <label style="font-size: 13px; font-weight: bold; display: block; margin-top: 5px;">Video Türü:</label>
+            <select id="videoTuru">
+                <option value="normal">Normal Video (Keşfet / Yatay)</option>
+                <option value="shorts">Shorts (Dikey Akış)</option>
+            </select>
+
+            <input type="file" id="videoDosya" accept="video/*" style="margin-top: 10px;">
+            <button class="btn-red" onclick="videoYukle()">Videoyu Yayınla</button>
+            <button class="btn-gray" onclick="modalKapat('uploadModal')">İptal</button>
+        </div>
+    </div>
+
+    <!-- Ses / MP3 Yükle Modal -->
+    <div class="modal" id="audioUploadModal">
+        <div class="box">
+            <h3>MP3 / Ses Yükle</h3>
+            <input type="text" id="sesBaslik" placeholder="Ses / Müzik Adı">
+            <input type="file" id="sesDosya" accept="audio/*" style="margin-top: 10px;">
+            <button class="btn-red" style="background:#007bff;" onclick="sesYukle()">Sesi Yayınla</button>
+            <button class="btn-gray" onclick="modalKapat('audioUploadModal')">İptal</button>
+        </div>
+    </div>
+
+    <script>
+        let aktifKullanici = localStorage.getItem('videoTubeUser') || null;
+        let globalVeriler = { videolar: [], sesler: [], aboneler: {}, kullanicilar: {} };
+        let aktifVideoId = null;
+        let aktifKanalAdi = null;
+        const MODERATOR_KULLANICI = "admin"; 
+
+        if(localStorage.getItem('videoTubeDarkMode') === 'true') {
+            document.body.classList.add('dark-mode');
+            document.getElementById('themeBtn').innerText = "☀️ Gündüz Modu";
+        }
+
+        function temaDegistir() {
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            localStorage.setItem('videoTubeDarkMode', isDark);
+            document.getElementById('themeBtn').innerText = isDark ? "☀️ Gündüz Modu" : "🌙 Gece Modu";
+        }
+
+        function headerKullaniciAyarla() {
+            const area = document.getElementById('userHeaderArea');
+            if(aktifKullanici) {
+                let badge = (aktifKullanici === MODERATOR_KULLANICI) ? " 🛡️ [MOD]" : "";
+                area.innerHTML = `
+                    <span style="font-size: 13px; font-weight: bold;">👤 ${aktifKullanici}${badge}</span>
+                    <button class="user-panel-outline" onclick="cikisYap()">Çıkış Yap</button>
+                `;
+            } else {
+                area.innerHTML = `
+                    <button class="user-panel-outline" onclick="modalAc('loginModal')">Giriş Yap</button>
+                    <button class="user-panel" onclick="modalAc('registerModal')">Kayıt Ol</button>
+                `;
+            }
+        }
+
+        function cikisYap() {
+            aktifKullanici = null;
+            localStorage.removeItem('videoTubeUser');
+            headerKullaniciAyarla();
+            ekraniGuncelle();
+            alert("Çıkış yapıldı.");
+        }
+
+        async function verileriGetir() {
+            try {
+                const res = await fetch('/api/veriler');
+                globalVeriler = await res.json();
+                headerKullaniciAyarla();
+                ekraniGuncelle();
+                
+                if(aktifVideoId) {
+                    const guncelVideo = globalVeriler.videolar.find(v => v.id === aktifVideoId);
+                    if(guncelVideo) {
+                        const begenenler = guncelVideo.begenenler || [];
+                        const begenmeyenler = guncelVideo.begenmeyenler || [];
+                        document.getElementById('likeCount').innerText = begenenler.length;
+                        document.getElementById('dislikeCount').innerText = begenmeyenler.length;
+                        yorumlarıCiz(guncelVideo.yorumlar || []);
+                    }
+                }
+                if(aktifKanalAdi) {
+                    aboneDurumunuGuncelle(aktifKanalAdi);
+                }
+            } catch (err) {
+                console.error("Veriler alınamadı:", err);
+            }
+        }
+
+        function modalAc(modalId) {
+            document.getElementById(modalId).style.display = 'flex';
+        }
+
+        function modalKapat(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        function secimModalAc() {
+            if(!aktifKullanici) {
+                alert("İçerik yüklemek için önce giriş yapmalısın abi!");
+                modalAc('loginModal');
+                return;
+            }
+            modalAc('secimModal');
+        }
+
+        async function girisYapIslem() {
+            const nick = document.getElementById('loginNick').value;
+            const sifre = document.getElementById('loginPass').value;
+            if(!nick || !sifre) { alert("Lütfen alanları doldurun!"); return; }
+
+            try {
+                const res = await fetch('/api/giris', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ kullanici: nick, sifre })
+                });
+                const sonuc = await res.json();
+                if(sonuc.basari) {
+                    aktifKullanici = sonuc.kullanici;
+                    localStorage.setItem('videoTubeUser', aktifKullanici);
+                    modalKapat('loginModal');
+                    headerKullaniciAyarla();
+                    document.getElementById('loginNick').value = '';
+                    document.getElementById('loginPass').value = '';
+                    alert("Giriş başarılı, hoş geldin " + aktifKullanici + "!");
+                    if(aktifVideoId) verileriGetir();
+                } else {
+                    alert(sonuc.mesaj);
+                }
+            } catch(e) { console.error(e); }
+        }
+
+        async function kayitOlIslem() {
+            const nick = document.getElementById('regNick').value;
+            const sifre = document.getElementById('regPass').value;
+            if(!nick || !sifre) { alert("Lütfen alanları doldurun!"); return; }
+
+            try {
+                const res = await fetch('/api/kayit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ kullanici: nick, sifre })
+                });
+                const sonuc = await res.json();
+                if(sonuc.basari) {
+                    alert("Kayıt başarılı! Şimdi giriş yapabilirsin.");
+                    modalKapat('registerModal');
+                    document.getElementById('regNick').value = '';
+                    document.getElementById('regPass').value = '';
+                    modalAc('loginModal');
+                } else {
+                    alert(sonuc.mesaj);
+                }
+            } catch(e) { console.error(e); }
+        }
+
+        async function videoYukle() {
+            const baslik = document.getElementById('videoBaslik').value;
+            const tur = document.getElementById('videoTuru').value;
+            const dosyaInput = document.getElementById('videoDosya');
+            
+            if(!baslik || dosyaInput.files.length === 0) {
+                alert("Lütfen başlık girin ve bir video seçin!");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('videoDosya', dosyaInput.files[0]);
+            formData.append('baslik', baslik);
+            formData.append('turu', tur);
+            formData.append('yukleyen', aktifKullanici);
+
+            modalKapat('uploadModal');
+            document.getElementById('loadingOverlay').style.display = 'flex';
+
+            try {
+                const response = await fetch('/api/video-yukle', {
+                    method: 'POST',
+                    body: formData
+                });
+                const sonuc = await response.json();
+                document.getElementById('loadingOverlay').style.display = 'none';
+
+                if(sonuc.basari) {
+                    document.getElementById('videoBaslik').value = '';
+                    dosyaInput.value = '';
+                    await verileriGetir();
+                } else {
+                    alert("Sunucu Hatası: " + (sonuc.mesaj || "Yükleme başarısız!"));
+                }
+            } catch (err) {
+                document.getElementById('loadingOverlay').style.display = 'none';
+                console.error("Yükleme hatası:", err);
+            }
+        }
+
+        async function sesYukle() {
+            const baslik = document.getElementById('sesBaslik').value;
+            const dosyaInput = document.getElementById('sesDosya');
+            
+            if(!baslik || dosyaInput.files.length === 0) {
+                alert("Lütfen ses adı girin ve bir MP3 dosyası seçin!");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('sesDosya', dosyaInput.files[0]);
+            formData.append('baslik', baslik);
+            formData.append('yukleyen', aktifKullanici);
+
+            modalKapat('audioUploadModal');
+            document.getElementById('loadingOverlay').style.display = 'flex';
+
+            try {
+                const response = await fetch('/api/ses-yukle', {
+                    method: 'POST',
+                    body: formData
+                });
+                const sonuc = await response.json();
+                document.getElementById('loadingOverlay').style.display = 'none';
+
+                if(sonuc.basari) {
+                    document.getElementById('sesBaslik').value = '';
+                    dosyaInput.value = '';
+                    await verileriGetir();
+                    alert("Ses başarıyla yüklendi!");
+                } else {
+                    alert("Sunucu Hatası: " + (sonuc.mesaj || "Yükleme başarısız!"));
+                }
+            } catch (err) {
+                document.getElementById('loadingOverlay').style.display = 'none';
+                console.error("Ses yükleme hatası:", err);
+            }
+        }
+
+        function videoOynat(vid) {
+            aktifVideoId = vid.id;
+            aktifKanalAdi = vid.yukleyen;
+            vid.izlenme++;
+
+            const playerArea = document.getElementById('playerArea');
+            const mainPlayer = document.getElementById('mainPlayer');
+            
+            const begenenler = vid.begenenler || [];
+            const begenmeyenler = vid.begenmeyenler || [];
+
+            document.getElementById('playingTitle').innerText = vid.baslik;
+            document.getElementById('playingUser').innerText = "👤 " + vid.yukleyen;
+            document.getElementById('likeCount').innerText = begenenler.length;
+            document.getElementById('dislikeCount').innerText = begenmeyenler.length;
+            
+            aboneDurumunuGuncelle(vid.yukleyen);
+            yorumlarıCiz(vid.yorumlar || []);
+
+            mainPlayer.src = vid.url;
+            playerArea.style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            ekraniGuncelle();
+        }
+
+        async function videoBegen() {
+            if(!aktifKullanici) { alert("Beğenmek için önce giriş yapmalısın abi!"); modalAc('loginModal'); return; }
+            if(!aktifVideoId) return;
+
+            try {
+                const res = await fetch(`/api/video/${aktifVideoId}/begen`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ kullanici: aktifKullanici })
+                });
+                const sonuc = await res.json();
+                if(sonuc.basari) {
+                    document.getElementById('likeCount').innerText = sonuc.begeniler;
+                    document.getElementById('dislikeCount').innerText = sonuc.begenmeyenler;
+                    const v = globalVeriler.videolar.find(x => x.id === aktifVideoId);
+                    if(v) { v.begenenler = sonuc.begenenler; v.begenmeyenler = sonuc.begenmeyenler; }
+                }
+            } catch (err) { console.error(err); }
+        }
+
+        async function videoBegenmeme() {
+            if(!aktifKullanici) { alert("Beğenmemek için önce giriş yapmalısın abi!"); modalAc('loginModal'); return; }
+            if(!aktifVideoId) return;
+
+            try {
+                const res = await fetch(`/api/video/${aktifVideoId}/begenme`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ kullanici: aktifKullanici })
+                });
+                const sonuc = await res.json();
+                if(sonuc.basari) {
+                    document.getElementById('likeCount').innerText = sonuc.begeniler;
+                    document.getElementById('dislikeCount').innerText = sonuc.begenmeyenler;
+                    const v = globalVeriler.videolar.find(x => x.id === aktifVideoId);
+                    if(v) { v.begenenler = sonuc.begenenler; v.begenmeyenler = sonuc.begenmeyenler; }
+                }
+            } catch (err) { console.error(err); }
+        }
+
+        async function aboneOlTikla() {
+            if(!aktifKullanici) { alert("Abone olmak için önce giriş yapmalısın abi!"); modalAc('loginModal'); return; }
+            if(!aktifKanalAdi) return;
+
+            try {
+                const res = await fetch('/api/kanal/abone', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ kanalAdi: aktifKanalAdi, kullanici: aktifKullanici })
+                });
+                const sonuc = await res.json();
+                if(sonuc.basari) {
+                    globalVeriler.aboneler[aktifKanalAdi] = sonuc.aboniler;
+                    aboneDurumunuGuncelle(aktifKanalAdi);
+                }
+            } catch (err) { console.error(err); }
+        }
+
+        function aboneDurumunuGuncelle(kanalAdi) {
+            const liste = globalVeriler.aboneler[kanalAdi] || [];
+            const aboneSayisi = liste.length;
+            const subBtn = document.getElementById('subBtn');
+            
+            document.getElementById('subCount').innerText = aboneSayisi;
+            if(aktifKullanici && liste.includes(aktifKullanici)) {
+                subBtn.innerText = "Abone Olundu (" + aboneSayisi + ")";
+                subBtn.classList.add('subscribed');
+            } else {
+                subBtn.innerText = "Abone Ol (" + aboneSayisi + ")";
+                subBtn.classList.remove('subscribed');
+            }
+        }
+
+        async function yorumGonder() {
+            if(!aktifKullanici) { alert("Yorum yapabilmek için giriş yapmalısın abi!"); modalAc('loginModal'); return; }
+            const metin = document.getElementById('yorumInput').value;
+            if(!metin) return;
+
+            try {
+                const res = await fetch(`/api/video/${aktifVideoId}/yorum`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ yazar: aktifKullanici, metin: metin })
+                });
+                const sonuc = await res.json();
+                if(sonuc.basari) {
+                    document.getElementById('yorumInput').value = '';
+                    const v = globalVeriler.videolar.find(x => x.id === aktifVideoId);
+                    if(v) v.yorumlar = sonuc.yorumlar;
+                    yorumlarıCiz(sonuc.yorumlar);
+                }
+            } catch (err) { console.error(err); }
+        }
+
+        function yorumlarıCiz(yorumlar) {
+            document.getElementById('commentCount').innerText = yorumlar.length;
+            const listeDiv = document.getElementById('yorumlarListesi');
+            if(yorumlar.length === 0) {
+                listeDiv.innerHTML = '<p style="color:#666; font-size:13px;">Henüz yorum yapılmamış. İlk yorumu sen yap!</p>';
+                return;
+            }
+            let html = '';
+            yorumlar.forEach(y => {
+                html += `
+                    <div class="comment-item">
+                        <strong>@${y.yazar}</strong> <span>${y.tarih}</span>
+                        <p style="margin: 4px 0 0 0;">${y.metin}</p>
+                    </div>
+                `;
+            });
+            listeDiv.innerHTML = html;
+        }
+
+        function oynatıcıKapatt() {
+            aktifVideoId = null;
+            aktifKanalAdi = null;
+            const mainPlayer = document.getElementById('mainPlayer');
+            mainPlayer.pause();
+            mainPlayer.src = "";
+            document.getElementById('playerArea').style.display = 'none';
+        }
+
+        function sayfaDegistir(sayfaAdi) {
+            const shortsContainer = document.getElementById('shortsContainer');
+            if(shortsContainer) {
+                const shortsVids = shortsContainer.querySelectorAll('video');
+                shortsVids.forEach(v => v.pause());
+            }
+
+            document.getElementById('page-anasayfa').style.display = 'none';
+            document.getElementById('page-shorts').style.display = 'none';
+            document.getElementById('page-sesler').style.display = 'none';
+            document.getElementById('page-trendler').style.display = 'none';
+            document.getElementById('page-denetim').style.display = 'none';
+
+            document.querySelectorAll('aside li').forEach(li => li.classList.remove('active'));
+
+            document.getElementById('page-' + sayfaAdi).style.display = 'block';
+            const menuEl = document.getElementById('menu-' + sayfaAdi);
+            if(menuEl) menuEl.classList.add('active');
+
+            if(sayfaAdi === 'denetim') denetimEkraniniCiz();
+            if(sayfaAdi === 'shorts') shortsVideolariniBaslat();
+            if(sayfaAdi === 'sesler') sesleriCiz();
+        }
+
+        function ekraniGuncelle() {
+            const anaSayfaIcerik = document.getElementById('anaSayfaIcerik');
+            const trendGrid = document.getElementById('trendGrid');
+            const videolar = globalVeriler.videolar;
+
+            anaSayfaIcerik.innerHTML = '';
+            trendGrid.innerHTML = '';
+
+            if(videolar.length === 0) {
+                anaSayfaIcerik.innerHTML = `
+                    <div class="empty-state">
+                        <h2>🔍 Henüz Video Yok!</h2>
+                        <p>İlk videoyu sen veya arkadaşın yükleyebilirsiniz.</p>
+                        <button class="btn-red" style="width: auto; padding: 10px 20px;" onclick="secimModalAc()">İlk İçeriği Yükle</button>
+                    </div>
+                `;
+                trendGrid.innerHTML = '<p style="color:#666;">Henüz trend video yok.</p>';
+                return;
+            }
+
+            const normalVideolar = videolar.filter(v => v.turu === 'normal');
+            const shortsVideolar = videolar.filter(v => v.turu === 'shorts');
+
+            let html = '<h3 class="section-title">📺 Keşfet (Normal Videolar)</h3>';
+            if(normalVideolar.length === 0) {
+                html += '<p style="color:#666; font-size:14px;">Henüz normal video yüklenmedi.</p>';
+            } else {
+                html += '<div class="video-grid" id="normalGrid"></div>';
+            }
+
+            html += '<h3 class="section-title" style="margin-top:35px;">📱 Shorts Akışı</h3>';
+            if(shortsVideolar.length === 0) {
+                html += '<p style="color:#666; font-size:14px;">Henüz Shorts videosu yüklenmedi.</p>';
+            } else {
+                html += '<div class="video-grid" id="anaShortsGrid"></div>';
+            }
+
+            anaSayfaIcerik.innerHTML = html;
+
+            if(normalVideolar.length > 0) {
+                const normalGrid = document.getElementById('normalGrid');
+                normalVideolar.forEach(vid => normalGrid.appendChild(videoKartiOlustur(vid)));
+            }
+
+            if(shortsVideolar.length > 0) {
+                const anaShortsGrid = document.getElementById('anaShortsGrid');
+                shortsVideolar.forEach(vid => anaShortsGrid.appendChild(videoKartiOlustur(vid)));
+            }
+
+            videolar.forEach(vid => trendGrid.appendChild(videoKartiOlustur(vid)));
+        }
+
+        function videoKartiOlustur(vid) {
+            const card = document.createElement('div');
+            card.className = 'video-card';
+            card.onclick = () => videoOynat(vid);
+            const begeniSayisi = vid.begenenler ? vid.begenenler.length : 0;
+            card.innerHTML = `
+                <div class="thumbnail">▶ Oynat (${vid.turu.toUpperCase()})</div>
+                <strong>${vid.baslik}</strong>
+                <p style="font-size:12px; color:#666; margin:4px 0 0 0;">${vid.yukleyen} • ${vid.izlenme} izlenme • 👍 ${begeniSayisi}</p>
+            `;
+            return card;
+        }
+
+        function sesleriCiz() {
+            const grid = document.getElementById('seslerGrid');
+            const sesler = globalVeriler.sesler || [];
+            grid.innerHTML = '';
+
+            if(sesler.length === 0) {
+                grid.innerHTML = '<p style="color:#666;">Henüz ses veya müzik yüklenmemiş.</p>';
+                return;
+            }
+
+            sesler.forEach(s => {
+                const card = document.createElement('div');
+                card.className = 'audio-card';
+                card.innerHTML = `
+                    <strong>🎵 ${s.baslik}</strong>
+                    <p style="font-size:12px; color:#666; margin:0;">Yükleyen: @${s.yukleyen}</p>
+                    <audio controls src="${s.url}"></audio>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function shortsVideolariniBaslat() {
+            const shortsContainer = document.getElementById('shortsContainer');
+            shortsContainer.innerHTML = '';
+
+            const shortsVideolar = globalVeriler.videolar.filter(v => v.turu === 'shorts');
+            if(shortsVideolar.length === 0) {
+                shortsContainer.innerHTML = '<p style="text-align:center; color:#666; margin-top:40px;">Henüz Shorts videosu yok abi.</p>';
+                return;
+            }
+
+            shortsVideolar.forEach((vid, index) => {
+                const shortCard = document.createElement('div');
+                shortCard.className = 'short-card-full';
+                const begeniSayisi = vid.begenenler ? vid.begenenler.length : 0;
+                shortCard.innerHTML = `
+                    <video src="${vid.url}" controls loop ${index === 0 ? 'autoplay' : ''}></video>
+                    <div class="short-info">
+                        <h4>${vid.baslik}</h4>
+                        <p>@${vid.yukleyen} • 👍 ${begeniSayisi}</p>
+                    </div>
+                `;
+                shortsContainer.appendChild(shortCard);
+            });
+
+            shortsContainer.onscroll = function() {
+                const videoElements = shortsContainer.querySelectorAll('video');
+                const containerRect = shortsContainer.getBoundingClientRect();
+
+                videoElements.forEach(video => {
+                    const rect = video.getBoundingClientRect();
+                    if (rect.top >= containerRect.top - 100 && rect.bottom <= containerRect.bottom + 100) {
+                        video.play().catch(e => {});
+                    } else {
+                        video.pause();
+                    }
+                });
+            };
+        }
+
+        function denetimEkraniniCiz() {
+            const container = document.getElementById('denetimListesi');
+            if(!aktifKullanici) {
+                container.innerHTML = '<p>Moderatör paneline erişmek için giriş yapmalısınız.</p>';
+                return;
+            }
+
+            let gosterilecekVideolar = (aktifKullanici === MODERATOR_KULLANICI) ? globalVeriler.videolar : globalVeriler.videolar.filter(v => v.yukleyen === aktifKullanici);
+            let gosterilecekSesler = (aktifKullanici === MODERATOR_KULLANICI) ? (globalVeriler.sesler || []) : (globalVeriler.sesler || []).filter(s => s.yukleyen === aktifKullanici);
+
+            let html = '<h4 style="margin-top:0;">Videolar</h4>';
+            if(gosterilecekVideolar.length === 0) {
+                html += '<p style="font-size:13px; color:#666;">Video bulunmuyor.</p>';
+            } else {
+                html += '<table border="1" cellpadding="8" cellspacing="0" width="100%" style="background:#fff; border-collapse:collapse; margin-bottom:20px;">';
+                html += '<tr bgcolor="#eee"><th>Başlık</th><th>Yükleyen</th><th>Tür</th><th>İşlem</th></tr>';
+                gosterilecekVideolar.forEach(v => {
+                    html += `<tr><td>${v.baslik}</td><td>@${v.yukleyen}</td><td>${v.turu}</td><td><button onclick="videoSil(${v.id})" class="btn-red" style="width:auto; padding:4px 8px;">Sil</button></td></tr>`;
+                });
+                html += '</table>';
+            }
+
+            html += '<h4>Sesler (MP3)</h4>';
+            if(gosterilecekSesler.length === 0) {
+                html += '<p style="font-size:13px; color:#666;">Ses dosyası bulunmuyor.</p>';
+            } else {
+                html += '<table border="1" cellpadding="8" cellspacing="0" width="100%" style="background:#fff; border-collapse:collapse;">';
+                html += '<tr bgcolor="#eee"><th>Ses Başlığı</th><th>Yükleyen</th><th>İşlem</th></tr>';
+                gosterilecekSesler.forEach(s => {
+                    html += `<tr><td>${s.baslik}</td><td>@${s.yukleyen}</td><td><button onclick="sesSil(${s.id})" class="btn-red" style="width:auto; padding:4px 8px;">Sil</button></td></tr>`;
+                });
+                html += '</table>';
+            }
+
+            container.innerHTML = html;
+        }
+
+        async function videoSil(id) {
+            if(!confirm("Bu videoyu silmek istediğine emin misin?")) return;
+            await fetch(`/api/video/${id}`, { method: 'DELETE' });
+            await verileriGetir();
+            denetimEkraniniCiz();
+        }
+
+        async function sesSil(id) {
+            if(!confirm("Bu sesi silmek istediğine emin misin?")) return;
+            await fetch(`/api/ses/${id}`, { method: 'DELETE' });
+            await verileriGetir();
+            denetimEkraniniCiz();
+        }
+
+        function aramaYap() {
+            const qVal = document.getElementById('searchInput').value.toLowerCase();
+            if(!qVal) { ekraniGuncelle(); return; }
+            
+            const anaSayfaIcerik = document.getElementById('anaSayfaIcerik');
+            const filtreli = globalVeriler.videolar.filter(v => v.baslik.toLowerCase().includes(qVal) || v.yukleyen.toLowerCase().includes(qVal));
+            
+            if(filtreli.length === 0) {
+                anaSayfaIcerik.innerHTML = '<p style="padding:20px;">Aramanıza uygun video bulunamadı.</p>';
+                return;
+            }
+
+            let html = '<h3 class="section-title">🔍 Arama Sonuçları</h3><div class="video-grid" id="aramaGrid"></div>';
+            anaSayfaIcerik.innerHTML = html;
+            
+            const aramaGrid = document.getElementById('aramaGrid');
+            filtreli.forEach(vid => aramaGrid.appendChild(videoKartiOlustur(vid)));
+            sayfaDegistir('anasayfa');
+        }
+
+        verileriGetir();
+        setInterval(verileriGetir, 3000);
+    </script>
+</body>
+</html>
